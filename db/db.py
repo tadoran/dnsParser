@@ -47,8 +47,11 @@ class DatabaseConnection():
         self.connection.close()
 
     def put_new_cities_to_db(self, values):
+        print(values)
+        for name, hash_str in values:
+            print(f"INSERT IGNORE INTO cities (`city_name`,`city_hash`) VALUES ({name},{hash_str})")
         query = "INSERT IGNORE INTO cities (`city_name`,`city_hash`) VALUES (%s,%s)"
-        self.executemany(query, values)
+        return self.executemany(query, values)
 
     def get_all_cities(self, size=10):
         query = "SELECT * FROM cities"

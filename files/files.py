@@ -24,41 +24,21 @@ def days_from_creation(filename):
     return (datetime.now() - file_modified(filename,True)["Modified"]).days
 
 
+def clear_folder(folder_path):
+    for the_file in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            # elif os.path.isdir(file_path): shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
+
+
+
 if __name__ == "__main__":
     file_to_analyze = sys.argv[0]
     # file_to_analyze = r"C:\Users\Gorelov\Desktop\DNS Parser\pyZip\price-sochi.zip"
 
     print(file_to_analyze, file_exists(file_to_analyze), file_modified(file_to_analyze), days_from_creation(file_to_analyze))
     print(file_to_analyze, file_exists(file_to_analyze), file_modified(file_to_analyze, True), days_from_creation(file_to_analyze))
-
-
-
-'''
-print("Modified")
-print(os.stat(file)[-2])
-print(os.stat(file).st_mtime)
-print(os.path.getmtime(file))
-
-print()
-
-print("Created")
-print(os.stat(file)[-1])
-print(os.stat(file).st_ctime)
-print(os.path.getctime(file))
-
-print()
-
-modified = os.path.getmtime(file)
-print("Date modified: "+time.ctime(modified))
-print("Date modified:",datetime.datetime.fromtimestamp(modified))
-year,month,day,hour,minute,second=time.localtime(modified)[:-3]
-print("Date modified: %02d/%02d/%d %02d:%02d:%02d"%(day,month,year,hour,minute,second))
-
-print()
-
-created = os.path.getctime(file)
-print("Date created: "+time.ctime(created))
-print("Date created:",datetime.datetime.fromtimestamp(created))
-year,month,day,hour,minute,second=time.localtime(created)[:-3]
-print("Date created: %02d/%02d/%d %02d:%02d:%02d"%(day,month,year,hour,minute,second))
-'''

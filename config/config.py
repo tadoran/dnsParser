@@ -12,6 +12,7 @@ class Configuration:
             self.sections = []
             self.read_db_config(filename)
         else:
+            pass
 
     def read_db_config(self, filename='config.ini'):
         """ Read database configuration file and return a dictionary object
@@ -20,6 +21,7 @@ class Configuration:
         :return: a dictionary of database parameters
         """
 
+        # TODO: Предусмотреть динамический путь
         folder = r"C:\Users\Gorelov\Documents\DNS PyParsing"
         path_to_file = os.path.join(folder, filename)
 
