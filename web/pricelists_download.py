@@ -10,6 +10,11 @@ from config.config import Configuration
 
 
 def make_download_list(files_count_limit=0, notifications=True):
+    '''Возвращает список ссылок на архивы прайс-листов на сайте.
+    Возвращаются ссылки на архивы, которые отсутствуют в  скаченных, или скаченные не сегодня.
+    files_count_limit - ограничение на кол-во возвращаемых ссылок.
+    Возвращается List([ссылка на сайте, адрес сохранения] )
+    '''
     cur_con = db.DatabaseConnection()
     cities = cur_con.get_all_cities()
     # config = Configuration()
@@ -39,6 +44,9 @@ def make_download_list(files_count_limit=0, notifications=True):
 
 
 def download_dns_zip(params):
+    '''Скачивает zip-архив с сайта, сохраняет в указанную папку.
+    params = list[ссылка на сайте, адрес сохранения]
+    '''
     url, save_path = params
     headers = ({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
@@ -51,6 +59,9 @@ def download_dns_zip(params):
 
 
 def unzip_dns_xls(params):
+    '''Распаковывает zip-архив в указаную директорию.
+    params = List[адрес zip-архива, директория сохранения]
+    '''
     zip_path, save_path = params
     unzip_file(zip_path, save_path)
 

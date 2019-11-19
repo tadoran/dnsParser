@@ -5,8 +5,11 @@ import hashlib
 
 
 def parse_xl_rangeRef(rangeRef):
+    '''Парсинг ссылки Excel вида 'Sheet1'!B3
+    Возвращает list(sheet,row, column)
+    '''
     ascii_uppercase = " " + string.ascii_uppercase
-    pattern = "'([\s\S]+?)'!(\w+?)(\d+)"
+    pattern = r"'([\s\S]+?)'!(\w+?)(\d+)"
     r = re.findall(pattern, rangeRef)
     # print()
     matched_list = list(r[0])
@@ -17,13 +20,21 @@ def parse_xl_rangeRef(rangeRef):
 
 
 def parse_dns_shop_entry(shop_entry):
-    pattern = "(М\d+)\s?—\s?([\s\S]+?), тел.([\s\S]+?)\s*\.\s*Режим работы:\s?([\s\S]+?)\s*\.\s*Адрес:\s?([\s\S]+)"
+    '''Парсинг строки адреса ДНС.
+    Возвращает list(Код, Название, Телефон, Время работы, Адрес, MD5(Адрес))
+    '''
+    pattern = r"(М\d+)\s?—\s?([\s\S]+?), тел.([\s\S]+?)\s*\.\s*Режим работы:\s?([\s\S]+?)\s*\.\s*Адрес:\s?([\s\S]+)"
     r = re.findall(pattern, shop_entry)
     hash_object = hashlib.md5(str(r[0][4]).encode('utf-8'))
     return list(r[0]) + [hash_object.hexdigest()]
 
 
 def parse_dns_xls(file_path):
+    '''Проводит парсинг файла ДНС по заданному пути.
+    Возвращает list(city_shops, data_retrieved)
+    list[city_shops]: Dict(MD5(Адрес) : [Код, Название, Телефон, Время работы, Адрес])
+    list[data_retrieved] = {Артикул: Dict("Descr", "Price", "ProzaPass" ,"AvailableIn" ,"AvailableCount" , "Category")}
+    '''
     print(f'Call to parse {file_path}')
 
     # TODO: брать категории для парсинга из базы
@@ -58,14 +69,13 @@ def parse_dns_xls(file_path):
             # Записываем в словарь вида {SheetName:[sheet_row1,sheet_row2,...]}
             sheets_to_parse[sh_name].append((sh_rows, category))
 
-        # Словарь с магазинами. Ключ - MDS(Адрес) : [Код, Название, Телефон, Время работы, Адрес]
+        # Словарь с магазинами. Ключ - MD5(Адрес) : [Код, Название, Телефон, Время работы, Адрес]
         city_shops = dict()
         shops_retrieved = False  # Парсим магазины только 1 раз, они на всех листах одинаковые
         # Словарь с наличием. Ключ - int(Артикул)
         data_retrieved = dict()
 
         for sheet_name, sheet_rows in sheets_to_parse.items():
-            # sheet_rows = sorted(sheet_rows)  # Сортируем ссылки на листе по возростанию, идем сверху вниз
             sheet = book.sheet_by_name(sheet_name)  # Подгружаем лист
 
             # Парсинг магазинов

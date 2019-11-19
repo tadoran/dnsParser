@@ -4,10 +4,18 @@ from datetime import datetime, timedelta
 
 
 def file_exists(filepath):
+'''Определяет, существует ли файл
+Возвращает True / False
+'''    
     return os.path.exists(filepath)
 
 
 def file_modified(filepath, return_as_date=False):
+    '''' Возвращает время модификации и создания файла
+    Возвращает dict("Modified","Created")
+    return_as_date = False - возвращает время в секундах
+    return_as_date = True - возвращает datetime
+    ''''
     if not file_exists(filepath):
         return None
 
@@ -21,10 +29,14 @@ def file_modified(filepath, return_as_date=False):
 
 
 def days_from_creation(filename):
+    '''Возвращает целое кол-во дней с момента модификации файла (int)
+    '''
     return (datetime.now() - file_modified(filename,True)["Modified"]).days
 
 
 def clear_folder(folder_path):
+    ''' Удаляет все файлы в заданной папке
+    '''
     for the_file in os.listdir(folder_path):
         file_path = os.path.join(folder_path, the_file)
         try:
