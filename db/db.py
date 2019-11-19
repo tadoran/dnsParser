@@ -20,6 +20,7 @@ class DatabaseConnection():
             if self.conn.is_connected():
                 print('connection established.')
                 self.cursor = self.conn.cursor(dictionary=True)
+                self.requests_pending = 0
             else:
                 print('connection failed.')
 
@@ -62,6 +63,48 @@ class DatabaseConnection():
         query = "SELECT * FROM cities WHERE cities.city_name_DNS IS NULL"  # limit 10,3"
         self.cursor.execute(query)
         return self.iter_row(size)
+
+    def get_shops_id_by_md5(self, md5_list, size=10):
+        format_strings = ','.join(['%s'] * len(md5_list))
+        query = self.cursor.execute("""SELECT id, MD5 FROM shops WHERE MD5 IN (%s)""" % format_strings, tuple(md5_list))
+        return self.iter_row(size)
+
+    def put_shops_to_db(self, values):
+        # TODO: Test
+        query = "INSERT IGNORE INTO shops (MD5, Name, Phone, worktime, Address) VALUES (%s, %s, %s, %s, %s)"
+        self.cursor.executemany(query, tuple(values))
+        self.conn.commit()
+        return self.cursor.fetchone()
+
+    def get_devices_not_in_db(self, articles):
+        # TODO: Test
+        format_strings = ','.join(['%s'] * len(articles))
+        self.cursor.execute("SELECT device_article in devices WHERE device_article IN (%s)" % format_strings,
+                            tuple(articles))
+
+        articles_available = [val for val in self.cursor.fetchall().values()]
+        return [article for article in articles if article not in articles_available]
+
+    def put_devices_to_db(self, *values):
+        # TODO: Test
+        query = "INSERT IGNORE INTO devices (device_article, device_name_dns) VALUES (%s, %s)"
+        self.cursor.executemany(query, tuple(values))
+        self.conn.commit()
+        return self.cursor.fetchone()
+
+    def put_availability_to_db(self, *values):
+        # TODO: Test
+        query = "INSERT IGNORE INTO `dnsavailability`.`availability` (`device_article`,`price`,`prozaPass`,`shop`," \
+                "`date`) VALUES (%s,%s,%s,%s,%s); "
+        self.cursor.executemany(query, tuple(values))
+        self.requests_pending += 1
+
+        if self.requests_pending >= 10:
+            self.requests_pending = 0
+            self.conn.commit()
+
+             # self.cursor.fetchone()
+            return self.cursor.rowcount
 
     def put_dns_names_to_db(self, *values):
         query = ("UPDATE IGNORE cities "

@@ -10,11 +10,11 @@ from config.config import Configuration
 
 
 def make_download_list(files_count_limit=0, notifications=True):
-    '''Возвращает список ссылок на архивы прайс-листов на сайте.
+    """Возвращает список ссылок на архивы прайс-листов на сайте.
     Возвращаются ссылки на архивы, которые отсутствуют в  скаченных, или скаченные не сегодня.
     files_count_limit - ограничение на кол-во возвращаемых ссылок.
     Возвращается List([ссылка на сайте, адрес сохранения] )
-    '''
+    """
     cur_con = db.DatabaseConnection()
     cities = cur_con.get_all_cities()
     # config = Configuration()

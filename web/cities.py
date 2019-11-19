@@ -5,9 +5,9 @@ from config.config import Configuration
 
 
 def get_cities_and_hashes():
-    ''' Возвращает список всех городов и их hash с сайта ДНС
+    """ Возвращает список всех городов и их hash с сайта ДНС
     Возвращает dict("Город":hash)
-    '''
+    """
     config = Configuration("config.ini")
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36"}

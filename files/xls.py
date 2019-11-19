@@ -5,9 +5,9 @@ import hashlib
 
 
 def parse_xl_rangeRef(rangeRef):
-    '''Парсинг ссылки Excel вида 'Sheet1'!B3
+    """Парсинг ссылки Excel вида 'Sheet1'!B3
     Возвращает list(sheet,row, column)
-    '''
+    """
     ascii_uppercase = " " + string.ascii_uppercase
     pattern = r"'([\s\S]+?)'!(\w+?)(\d+)"
     r = re.findall(pattern, rangeRef)
@@ -20,9 +20,9 @@ def parse_xl_rangeRef(rangeRef):
 
 
 def parse_dns_shop_entry(shop_entry):
-    '''Парсинг строки адреса ДНС.
+    """Парсинг строки адреса ДНС.
     Возвращает list(Код, Название, Телефон, Время работы, Адрес, MD5(Адрес))
-    '''
+    """
     pattern = r"(М\d+)\s?—\s?([\s\S]+?), тел.([\s\S]+?)\s*\.\s*Режим работы:\s?([\s\S]+?)\s*\.\s*Адрес:\s?([\s\S]+)"
     r = re.findall(pattern, shop_entry)
     hash_object = hashlib.md5(str(r[0][4]).encode('utf-8'))
@@ -30,11 +30,11 @@ def parse_dns_shop_entry(shop_entry):
 
 
 def parse_dns_xls(file_path):
-    '''Проводит парсинг файла ДНС по заданному пути.
+    """Проводит парсинг файла ДНС по заданному пути.
     Возвращает list(city_shops, data_retrieved)
-    list[city_shops]: Dict(MD5(Адрес) : [Код, Название, Телефон, Время работы, Адрес])
+    list[city_shops]: Dict(MD5("Address") : {"Code", "Name", "Phone", "WorkTime","Address" })
     list[data_retrieved] = {Артикул: Dict("Descr", "Price", "ProzaPass" ,"AvailableIn" ,"AvailableCount" , "Category")}
-    '''
+    """
     print(f'Call to parse {file_path}')
 
     # TODO: брать категории для парсинга из базы
