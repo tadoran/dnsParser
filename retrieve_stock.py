@@ -3,9 +3,25 @@ from config.config import Configuration
 import os
 import concurrent.futures
 import csv
-
 from files.xls import parse_dns_xls
 
+config = Configuration()
+curCon = db.DatabaseConnection()
+
+xls_files_directory = config.folders["xls_folder"]
+files = [xls_files_directory + "\\" + file for file in os.listdir(xls_files_directory) if file.endswith(".xls")][10:13]
+
+# with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
+#     executor.map(parse_dns_xls_local, files, timeout=60)
+#
+for file in files:
+    # print(os.path.abspath(file))
+    a = parse_dns_xls_local(os.path.normpath(file))
+# #     txt = str(a)
+# #     with open("log.txt", "a+") as f:
+# #         json.dump(txt, f)
+# #         # f.write(txt)
+# # curCon = db.DatabaseConnection()
 
 def parse_dns_xls_local(filename):
     local_name = os.path.basename(filename)
@@ -85,22 +101,3 @@ def parse_dns_xls_local(filename):
     # #     writer = csv.writer(f, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL)
     # #     for line in vib_list:
     # #         writer.writerow(line)
-
-
-config = Configuration()
-curCon = db.DatabaseConnection()
-
-xls_files_directory = config.folders["xls_folder"]
-files = [xls_files_directory + "\\" + file for file in os.listdir(xls_files_directory) if file.endswith(".xls")][10:13]
-
-# with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
-#     executor.map(parse_dns_xls_local, files, timeout=60)
-#
-for file in files:
-    # print(os.path.abspath(file))
-    a = parse_dns_xls_local(os.path.normpath(file))
-# #     txt = str(a)
-# #     with open("log.txt", "a+") as f:
-# #         json.dump(txt, f)
-# #         # f.write(txt)
-# # curCon = db.DatabaseConnection()
