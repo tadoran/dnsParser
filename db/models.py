@@ -90,6 +90,9 @@ class Availability(Base):
     __tablename__ = 'availability'
     __table_args__ = (
         Index('UK_dateShopDevice', 'date', 'shop', 'device_article', unique=True),
+        Index('FK_date'  , 'date'          , unique=False),
+        Index('FK_shop'  , 'shop'          , unique=False),
+        Index('FK_device', 'device_article', unique=False)
     )
 
     id = Column(INTEGER(11), primary_key=True)
@@ -97,7 +100,7 @@ class Availability(Base):
     price = Column(INTEGER(6))
     prozaPass = Column(INTEGER(6))
     shop = Column(ForeignKey('shops.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False, index=True)
-    date = Column(Date, nullable=False)
+    date = Column(Date, nullable=False, index=True)
 
     device = relationship('Device')
     shop1 = relationship('Shop')

@@ -52,7 +52,8 @@ class Dns_parse_file(Parse_file):
         # raise CompDocError("%s corruption: seen[%d] == %d" % (qname, s, self.seen[s]))
         # http://www.programmersought.com/article/676234398/
         # https://stackoverflow.com/questions/12705527/reading-excel-files-with-xlrd
-
+        
+        # print(f"Trying to open {self.filename}")
         self.file = xlrd.open_workbook(filename=self.filename, on_demand=True)
     
     @property
@@ -100,7 +101,7 @@ class Dns_parse_file(Parse_file):
             data_retrieved.update(self.parse_availability(sheet,sheet_rows))
             self.file.unload_sheet(sheet_name)  # Выгружаем лист из памяти для экономии ресурсов
 
-        self._articles = data_retrieved.keys()
+        self._articles = data_retrieved
         self._availability = data_retrieved
         self.isParsed = True
         return self
