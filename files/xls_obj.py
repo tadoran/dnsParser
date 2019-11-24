@@ -102,7 +102,8 @@ class Dns_parse_file(Parse_file):
             try:
                 data_retrieved.update(self.parse_availability(sheet, sheet_rows))
             except IndexError as e:
-                print(self.filename, e)
+                # print(self.filename, e)
+                pass
             self.file.unload_sheet(sheet_name)  # Выгружаем лист из памяти для экономии ресурсов
 
         self._articles = data_retrieved
@@ -150,7 +151,8 @@ class Dns_parse_file(Parse_file):
             try:
                 entry = str(sheet.row_values(row)[0])
             except IndexError as e:
-                print(self.filename, e)
+                # print(self.filename, e)
+                pass
 
             if entry == "Код":
                 break

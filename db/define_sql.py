@@ -8,10 +8,12 @@ else:
 
 
 def get_session():
-    # engine = create_engine('sqlite:///:memory:', echo=True)
-    # engine = create_engine('sqlite:///database.db', echo=True)
-    engine = create_engine('sqlite:///database.db', echo=False)
-    
+    # engine = create_engine('sqlite:///:memory:', echo=False)
+    # engine = create_engine('sqlite:///database2.db', echo=True)
+    engine = create_engine('mysql+pymysql://testUser:UserTest!2019@localhost:3307/dns_test2', echo=False)
+    # engine = create_engine('sqlite:///database4.db', echo=False)
+    # engine = create_engine('sqlite:///database4.db', echo=False)
+
     metadata.create_all(engine)
     # create a configured "Session" class
     Session = sessionmaker(bind=engine)

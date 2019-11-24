@@ -19,7 +19,7 @@ def parse_dns_xls_local(*args):
     queue = args[2]
 
     # print(f"Request for parsing {filename}")
-    print("Req", end="   ")
+    print(".", end=" ")
     # SQL imports
     category_names = [obj.nameGroup for obj in categories]
     category_dict = {obj.nameGroup: obj.Id for obj in categories}
@@ -47,7 +47,7 @@ def sql_async(endless=True):
         category_dict = {}
         # Concatenate all present results together
         counter = 0
-        while not queue.empty() and counter <= 10:
+        while not queue.empty():  # and counter <= 10:
             # print(f"There are {len(list(queue.queue))} items in queue now.")
             qur_queue_result = queue.get()
             if qur_queue_result == "EXIT":
@@ -177,7 +177,6 @@ print(files)
 categories = get_categories()
 queue = queue.Queue()
 with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-    sql_thread = executor.submit(sql_async)
     print(f"Asserting that at least 1 result is parsed. Starting pushing to SQL")
     # Starting threads for file parsing
     results = [executor.submit(parse_dns_xls_local, file, categories, queue) for file in files]
@@ -189,11 +188,12 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
 
     # Thread to push data to DB
     concurrent.futures.wait(results, return_when=concurrent.futures.FIRST_COMPLETED)
+sql_thread = sql_async()
 # with concurrent.futures.ProcessPoolExecutor() as executor:
 
-    concurrent.futures.wait(results, return_when=concurrent.futures.ALL_COMPLETED)
-    print(f"Asserting that all threads are completed. Closing connection to SQL")
-    queue.put("EXIT")
+    # concurrent.futures.wait(results, return_when=concurrent.futures.ALL_COMPLETED)
+    # print(f"Asserting that all threads are completed. Closing connection to SQL")
+queue.put("EXIT")
     # After all file threads are completed - kill SQL thread
     # print("All threads are done, killing SQL ")
     # sql_thread.cancel()
