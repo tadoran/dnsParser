@@ -86,7 +86,7 @@ if __name__ == "__main__":
     downloaded_zips = [(file, xls_files_directory) for file in files]
     print(downloaded_zips)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=15) as executor:
         executor.map(unzip_dns_xls, downloaded_zips)
 
     t2 = time.perf_counter()

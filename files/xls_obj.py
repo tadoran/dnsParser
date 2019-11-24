@@ -60,7 +60,7 @@ class Dns_parse_file(Parse_file):
     def availability_by_shops(self):
         by_shops = {}
         for key, device in self._availability.items():
-            for shop in device.pop("AvailableIn",None):
+            for shop in device.pop("AvailableIn", None):
                 by_shops[(key, shop)] = device
         return by_shops
 
@@ -98,7 +98,11 @@ class Dns_parse_file(Parse_file):
             sheet = self.file.sheet_by_name(sheet_name)  # Подгружаем лист
             if not shops_retrieved:
                 self.parse_shops(sheet)
-            data_retrieved.update(self.parse_availability(sheet,sheet_rows))
+                shops_retrieved = True
+            try:
+                data_retrieved.update(self.parse_availability(sheet, sheet_rows))
+            except IndexError as e:
+                print(self.filename, e)
             self.file.unload_sheet(sheet_name)  # Выгружаем лист из памяти для экономии ресурсов
 
         self._articles = data_retrieved
@@ -106,11 +110,11 @@ class Dns_parse_file(Parse_file):
         self.isParsed = True
         return self
 
-    def parse_availability(self, sheet,sheet_rows):
+    def parse_availability(self, sheet, sheet_rows):
         # Парсинг наличия
+        data_retrieved = {}
         for row, category in sheet_rows:
             article = ""
-            data_retrieved = {}
             # Спускаемся от первой ячейки ссылки вниз пока не встретим "Код" или не дойдем до конца листа
             while article != "Код" or row < sheet.nrows - 1:
                 article, article_name, *availability, price, prozaPass = sheet.row_values(row)
@@ -131,7 +135,7 @@ class Dns_parse_file(Parse_file):
                     row += 1
                 else:
                     break
-        
+
         return data_retrieved
 
     def parse_shops(self, sheet):
@@ -141,7 +145,13 @@ class Dns_parse_file(Parse_file):
         city_shops = {}
         while entry != "Код" or row < sheet.nrows - 1:
             row += 1
-            entry = str(sheet.row_values(row)[0])
+            if row > sheet.nrows:
+                break
+            try:
+                entry = str(sheet.row_values(row)[0])
+            except IndexError as e:
+                print(self.filename, e)
+
             if entry == "Код":
                 break
             parsed_string = self.parse_dns_shop_entry(entry)

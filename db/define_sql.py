@@ -21,12 +21,12 @@ def get_session():
 def create_categoties():
     session = get_session()
     categories = ({
-        "CP": [
+        "MDA": [
             "Варочные панели газовые", "Варочные панели электрические", "Встраиваемые посудомоечные машины",
             "Духовые шкафы электрические",
             "Посудомоечные машины", "Стиральные машины", "Холодильники", "Вытяжки"
               ],
-        "MDA": [
+        "CP": [
             "Блендеры погружные",
             "Блендеры стационарные", "Грили и раклетницы",
             "Измельчители", "Кофеварки капельные", "Кофемашины автоматические", "Кофемашины капсульные", "Кофемолки",
@@ -54,8 +54,8 @@ def get_categories():
 if __name__ == "__main__":
     try:
         create_categoties()
-    except exc.IntegrityError:
-        pass
+    except exc.IntegrityError as e:
+        print(__name__, e)
     print([category.nameGroup for category in get_categories()])
     #for category in get_categories():
     #    print(category.Id, category.nameGroup)

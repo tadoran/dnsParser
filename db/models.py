@@ -47,17 +47,6 @@ class Shop(Base):
     worktime = Column(String(100))
     Address = Column(String(150))
 
-
-t_view_devices = Table(
-    'view_devices', metadata,
-    Column('department_name', String(10)),
-    Column('nameGroup', String(255)),
-    Column('brand_name', String(45)),
-    Column('device_article', INTEGER(11)),
-    Column('device_name_bsh', String(255))
-)
-
-
 class VibGroup(Base):
     __tablename__ = 'vib_groups'
 
@@ -91,8 +80,7 @@ class Availability(Base):
     __table_args__ = (
         Index('UK_dateShopDevice', 'date', 'shop', 'device_article', unique=True),
         Index('FK_date'  , 'date'          , unique=False),
-        Index('FK_shop'  , 'shop'          , unique=False),
-        Index('FK_device', 'device_article', unique=False)
+        Index('FK_shop'  , 'shop'          , unique=False)
     )
 
     id = Column(INTEGER(11), primary_key=True)
