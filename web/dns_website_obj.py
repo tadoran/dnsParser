@@ -1,19 +1,18 @@
 import requests
 import re
-import json
+# import json
 
 
-class Dns_website:
+class DnsWebsite:
     def __init__(self):
         self.headers = {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
-                        "referer": "https: // www.dns-shop.ru"
-                        }
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
+            "referer": "https: // www.dns-shop.ru"
+        }
         self.url = "http://dns-shop.ru"
         self.base_cities_url = "https://www.dns-shop.ru/ajax/region-nav-window/"
         self.base_city_guid_url = "https://www.dns-shop.ru/ajax/change-city/?city_guid="
         self.cities = {}
-
 
     def get_cities_and_hashes(self):
         """ Возвращает список всех городов и их hash с сайта ДНС
