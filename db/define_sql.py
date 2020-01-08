@@ -59,5 +59,5 @@ if __name__ == "__main__":
     except exc.IntegrityError as e:
         print(__name__, e)
     print([category.nameGroup for category in get_categories()])
-    #for category in get_categories():
-    #    print(category.Id, category.nameGroup)
+    #for Category in get_categories():
+    #    print(Category.Id, Category.nameGroup)

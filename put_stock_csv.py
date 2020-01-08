@@ -21,7 +21,7 @@ def parse_dns_xls_local(*args):
     categories = args[1]
     queue = args[2]
     # print(f"Request for parsing {filename}")
-    print(".", end=" ")
+    # print(".", end=" ")
     # SQL imports
     category_names = [obj.nameGroup for obj in categories]
     category_dict = {obj.nameGroup: obj.Id for obj in categories}
@@ -32,8 +32,9 @@ def parse_dns_xls_local(*args):
     file_shops = parsed_file.shops
     parse_results = parsed_file.availability_by_shops
 
+    str_to_print = f"OK - {parsed_file.city_name}\n"
+    print(str_to_print, flush = True, end="")
     queue.put([file_devices, file_shops, parse_results, category_dict])
-    # print("Thread is completed!")
 
 
 def CSV_PUSH(endless=True):
@@ -52,7 +53,7 @@ def CSV_PUSH(endless=True):
 
         # Concatenate all present results together
         counter = 0
-        while not queue.empty() and counter < 20:
+        while not queue.empty(): #and counter < 20:
             # print(f"There are {len(list(queue.queue))} items in queue now.")
             cur_queue_result = queue.get()
             if cur_queue_result == "EXIT":
@@ -74,18 +75,22 @@ def CSV_PUSH(endless=True):
             models.update(cur_models)
             shops.update(cur_shops)
 
-            cur_availability_encoded = {(key[0], shops_encode[key[1]]): item for key, item in cur_availability.items()}
+            try:
+                cur_availability_encoded = {(key[0], shops_encode[key[1]]): item for key, item in cur_availability.items()}
+            except KeyError:
+                pass
+
             availability.update(cur_availability_encoded)
             category_dict.update(cur_category_dict)
             counter += 1
 
-        if counter == 0:
-            time.sleep(1)
-        # elif counter >= max_files_proccesed:
-        #     print(f"Collected maximum results for a commit ({max_files_proccesed}). Pushing.")
-        #     break
-        else:
-            print(f"CSV_PUSH collected {counter} file results. Processing.")
+        # if counter == 0:
+        #     time.sleep(1)
+        # # elif counter >= max_files_proccesed:
+        # #     print(f"Collected maximum results for a commit ({max_files_proccesed}). Pushing.")
+        # #     break
+        # else:
+        #     print(f"CSV_PUSH collected {counter} file results. Processing.")
 
 
         print(f"CSV_PUSH collected {counter} file results. Processing.")
@@ -99,7 +104,7 @@ def CSV_PUSH(endless=True):
         availability_file = f"./output/availability {date_str}.csv"
 
         ### DEVICES
-        lines = [[str(article), details["Descr"]] for article, details in models.items()]
+        lines = [[str(article), details["Descr"], details["Category"]] for article, details in models.items()]
         with open(models_file, "a", errors="ignore", newline='') as mf:
             # If there are new shops in file - save them to file
             if len(lines) > 0:
@@ -110,16 +115,17 @@ def CSV_PUSH(endless=True):
                 lines_wrote["Devices"] = len(lines)
 
         ### SHOPS
-        lines = [[MD5_hash, details["Name"], details["Phone"], details["WorkTime"], details["Address"]] for
+        lines = [[MD5_hash, details["Name"], details["Phone"], details["WorkTime"], details["Address"], details["City"]] for
                  MD5_hash, details in shops.items()]
         # print(lines)
-        with open(shops_file, "a", errors="ignore", newline='') as sf:
+        with open(shops_file, "a", errors="ignore", newline='', encoding='utf-8') as sf:
             # If there are new shops in file - save them to file
             if len(lines) > 0:
                 # sf.writelines(lines)
-                writer = csv.writer(sf, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL)
-                for line in lines:
-                    writer.writerow(line)
+                writer = csv.writer(sf, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL, )
+                for num, line in enumerate(lines):
+                    # print(line + [num+1])
+                    writer.writerow(line + [num+1])
                 lines_wrote["Shops"] = len(lines)
 
         ### AVAILABILITY
@@ -165,8 +171,7 @@ if __name__ == '__main__':
     config = Configuration()
     xls_files_directory = config.folders["xls_folder"]
     # xls_files_directory = "./misc"
-    files = [os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if file.endswith(".xls")]  #[:100]
-
+    files = [os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if file.endswith(".xls")]  #[:15]
     categories = [Category(name, i + 1) for i, name in enumerate(categories)]
     queue = queue.Queue()
 

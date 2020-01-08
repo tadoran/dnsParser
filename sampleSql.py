@@ -11,7 +11,7 @@ curCon = db.DatabaseConnection()
 all_cities = cityDict = [x["city_name"] for x in curCon.get_all_cities()]
 new_cities = [(name, city_hash) for name, city_hash in get_cities_and_hashes().items() if name not in all_cities]
 # print(list(new_cities))
-# print(curCon.put_new_cities_to_db(new_cities))
+print(curCon.put_new_cities_to_db(new_cities))
 # sys.exit()
 
 cityDict = {x['city_name']: x for x in curCon.get_all_cities_wo_filename()}

@@ -2,6 +2,7 @@ import xlrd
 import re
 import string
 import hashlib
+import os
 
 class Parse_file:
     def __init__(self, filename):
@@ -45,6 +46,7 @@ class Parse_file:
 class Dns_parse_file(Parse_file):
     def __init__(self,filename, categories=[]):
         super().__init__(filename)
+        self.city_name = "-".join(os.path.basename(self.filename).split(".")[0].split("-")[1:])
         self.categories = categories
         self.load_file()
 
@@ -55,7 +57,8 @@ class Dns_parse_file(Parse_file):
         
         # print(f"Trying to open {self.filename}")
         self.file = xlrd.open_workbook(filename=self.filename, on_demand=True)
-    
+
+
     @property
     def availability_by_shops(self):
         by_shops = {}
@@ -163,7 +166,8 @@ class Dns_parse_file(Parse_file):
                 "Name":     parsed_string[1],
                 "Phone":    parsed_string[2].strip(),
                 "WorkTime": parsed_string[3],
-                "Address":  parsed_string[4]
+                "Address":  parsed_string[4],
+                "City": self.city_name
             })
         self._shops = city_shops
 
