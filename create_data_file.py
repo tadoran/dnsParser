@@ -1,12 +1,12 @@
 import pandas as pd
 
 a = r'C:\Users\Gorelov\Documents\DNS PyParsing\output\\'
-date_base = " 08-01-2020"
+date_base = " 12-01-2020"
 
 availability_filename = a + "availability" + date_base + ".csv"
 availability_headers = ["Article", "Price", "ProzaPass", "Shop", "Date"]
 availability = pd.read_csv(
-    availability_fileneme,
+    availability_filename,
     sep=";",
     names=availability_headers,
     parse_dates=True
@@ -28,14 +28,12 @@ data = (
         availability
             .merge(right=shops, how="left", left_on="Shop", right_on="shop_id")
             .groupby(["shop_city", "Article"])
-            .agg(
-                {
+            .agg({
                     "Price": min,
                     "ProzaPass": min,
                     "shop_num": [comma_str, "count"],
                     "Date": min
-                }
-            )
+                })
         .reset_index()
         )
 

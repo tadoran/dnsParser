@@ -3,15 +3,14 @@ import os
 import csv
 import concurrent.futures
 import queue
-import time
-
 from datetime import date
-# from files.xls import parse_dns_xls
+import pandas as pd
+
 from files.xls_obj import Dns_parse_file
 
 
-# from db.models import Device, Shop, Availability
-# from db.define_sql import get_session, get_categories
+def comma_str(lst):
+    return ",".join([str(x) for x in lst])
 
 
 def parse_dns_xls_local(*args):
@@ -20,8 +19,6 @@ def parse_dns_xls_local(*args):
     # Categories for import
     categories = args[1]
     queue = args[2]
-    # print(f"Request for parsing {filename}")
-    # print(".", end=" ")
     # SQL imports
     category_names = [obj.nameGroup for obj in categories]
     category_dict = {obj.nameGroup: obj.Id for obj in categories}
@@ -33,120 +30,131 @@ def parse_dns_xls_local(*args):
     parse_results = parsed_file.availability_by_shops
 
     str_to_print = f"OK - {parsed_file.city_name}\n"
-    print(str_to_print, flush = True, end="")
+    print(str_to_print, flush=True, end="")
     queue.put([file_devices, file_shops, parse_results, category_dict])
 
 
-def CSV_PUSH(endless=True):
+def write_data_to_csv():
     global queue
-    max_files_proccesed = 15
 
-    print("CSV_PUSH iteration starts")
+    print("write_data_to_csv iteration starts")
 
-    # Main loop
-    while True:
-        shops = {}
-        models = {}
-        availability = {}
-        category_dict = {}
-        lines_wrote = {}
+    shops = {}
+    models = {}
+    availability = {}
+    category_dict = {}
+    lines_wrote = {}
 
-        # Concatenate all present results together
-        counter = 0
-        while not queue.empty(): #and counter < 20:
-            # print(f"There are {len(list(queue.queue))} items in queue now.")
-            cur_queue_result = queue.get()
-            if cur_queue_result == "EXIT":
-                print("CSV_PUSH: I see EXIT element. Closing soon.")
-                if counter == 0:
-                    return
-                else:
-                    endless = False
-                    continue
-            cur_models = cur_queue_result[0]
-            cur_shops = cur_queue_result[1]
+    # Concatenate all present results together
+    counter = 0
+    while not queue.empty():
+        cur_queue_result = queue.get()
+        cur_models = cur_queue_result[0]
+        cur_shops = cur_queue_result[1]
 
-            shops_encode = {item["Code"]: key for key, item in cur_shops.items()}
-            # print(shops_encode)
+        shops_encode = {item["Code"]: key for key, item in cur_shops.items()}
+        cur_availability = cur_queue_result[2]
+        cur_category_dict = cur_queue_result[3]
 
-            cur_availability = cur_queue_result[2]
-            cur_category_dict = cur_queue_result[3]
+        models.update(cur_models)
+        shops.update(cur_shops)
 
-            models.update(cur_models)
-            shops.update(cur_shops)
+        try:
+            cur_availability_encoded = {(key[0], shops_encode[key[1]]): item for key, item in cur_availability.items()}
+        except KeyError:
+            pass
 
-            try:
-                cur_availability_encoded = {(key[0], shops_encode[key[1]]): item for key, item in cur_availability.items()}
-            except KeyError:
-                pass
+        availability.update(cur_availability_encoded)
+        category_dict.update(cur_category_dict)
+        counter += 1
 
-            availability.update(cur_availability_encoded)
-            category_dict.update(cur_category_dict)
-            counter += 1
+    print(f"write_data_to_csv collected {counter} file results. Processing.")
 
-        # if counter == 0:
-        #     time.sleep(1)
-        # # elif counter >= max_files_proccesed:
-        # #     print(f"Collected maximum results for a commit ({max_files_proccesed}). Pushing.")
-        # #     break
-        # else:
-        #     print(f"CSV_PUSH collected {counter} file results. Processing.")
+    # TODO: make date different
+    parsing_date = date.today()
+    date_str = parsing_date.strftime("%d-%m-%Y")
 
+    models_file = f"./output/models {date_str}-test.csv"
+    shops_file = f"./output/shops {date_str}-test.csv"
+    availability_file = f"./output/availability {date_str}-test.csv"
+    data_file = f"./output/data {date_str}-test.csv"
 
-        print(f"CSV_PUSH collected {counter} file results. Processing.")
+    ### DEVICES
+    lines = [[str(article), details["Descr"], details["Category"]] for article, details in models.items()]
+    with open(models_file, "a", errors="ignore", newline='') as mf:
+        # If there are new shops in file - save them to file
+        if len(lines) > 0:
+            # mf.writelines(lines)
+            writer = csv.writer(mf, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL)
+            for line in lines:
+                writer.writerow(line)
+            lines_wrote["Devices"] = len(lines)
 
-        # TODO: make date different
-        parsing_date = date.today()
-        date_str = parsing_date.strftime("%d-%m-%Y")
+    ### SHOPS
+    lines = [[MD5_hash, details["Name"], details["Phone"], details["WorkTime"], details["Address"], details["City"]] for
+             MD5_hash, details in shops.items()]
+    # print(lines)
+    with open(shops_file, "a", errors="ignore", newline='', encoding='utf-8') as sf:
+        # If there are new shops in file - save them to file
+        if len(lines) > 0:
+            # sf.writelines(lines)
+            writer = csv.writer(sf, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL, )
+            for num, line in enumerate(lines):
+                # print(line + [num+1])
+                writer.writerow(line + [num + 1])
+            lines_wrote["Shops"] = len(lines)
 
-        models_file = f"./output/models {date_str}.csv"
-        shops_file = f"./output/shops {date_str}.csv"
-        availability_file = f"./output/availability {date_str}.csv"
+    ### AVAILABILITY
+    lines = [[str(key[0]), str(value["Price"]), str(value["ProzaPass"]), str(key[1]), str(parsing_date)] for
+             key, value in availability.items()]
+    with open(availability_file, "a", errors="ignore", newline='') as af:
+        if len(lines) > 0:
+            writer = csv.writer(af, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL)
+            for line in lines:
+                writer.writerow(line)
 
-        ### DEVICES
-        lines = [[str(article), details["Descr"], details["Category"]] for article, details in models.items()]
-        with open(models_file, "a", errors="ignore", newline='') as mf:
-            # If there are new shops in file - save them to file
-            if len(lines) > 0:
-                # mf.writelines(lines)
-                writer = csv.writer(mf, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL)
-                for line in lines:
-                    writer.writerow(line)
-                lines_wrote["Devices"] = len(lines)
+            lines_wrote["Available"] = len(lines)
 
-        ### SHOPS
-        lines = [[MD5_hash, details["Name"], details["Phone"], details["WorkTime"], details["Address"], details["City"]] for
-                 MD5_hash, details in shops.items()]
-        # print(lines)
-        with open(shops_file, "a", errors="ignore", newline='', encoding='utf-8') as sf:
-            # If there are new shops in file - save them to file
-            if len(lines) > 0:
-                # sf.writelines(lines)
-                writer = csv.writer(sf, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL, )
-                for num, line in enumerate(lines):
-                    # print(line + [num+1])
-                    writer.writerow(line + [num+1])
-                lines_wrote["Shops"] = len(lines)
+    availability_filename = availability_file
+    availability_headers = ["Article", "Price", "ProzaPass", "Shop", "Date"]
+    availability = pd.read_csv(
+        availability_filename,
+        sep=";",
+        names=availability_headers,
+        parse_dates=True
+    )
+    shops_filename = shops_file
+    shops_headers = ["shop_id", "shop_name", "shop_phone", "shop_worktime", "shop_address", "shop_city", "shop_num"]
+    shops = pd.read_csv(shops_filename, sep=";", names=shops_headers, parse_dates=True, encoding="utf-8")
+    shops.head()
 
-        ### AVAILABILITY
-        lines = [[str(key[0]), str(value["Price"]), str(value["ProzaPass"]), str(key[1]), str(parsing_date)] for
-                 key, value in availability.items()]
-        with open(availability_file, "a", errors="ignore", newline='') as af:
-            if len(lines) > 0:
-                writer = csv.writer(af, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL)
-                for line in lines:
-                    writer.writerow(line)
+    data = (
+        availability
+            .merge(right=shops, how="left", left_on="Shop", right_on="shop_id")
+            .groupby(["shop_city", "Article"])
+            .agg({
+            "Price": min,
+            "ProzaPass": min,
+            "shop_num": [comma_str, "count"],
+            "Date": min
+        })
+        .reset_index()
+    )
 
-                lines_wrote["Available"] = len(lines)
+    data.columns = ["city", "article", "price", "ProzaPass", "shops", "shops_count", "date"]
+    data.date = pd.to_datetime(data.date)
 
-        if endless == False:
-            print("CSV_PUSH: Done.")
-            print("CSV_PUSH: Bye-bye!")
-            break
+    data.to_csv(
+        data_file,
+        sep=";",
+        header=True,
+        index=False,
+        quoting=1,  # QUOTE_ALL
+        date_format="%d.%m.%Y"  # 08.01.2020
+    )
 
-        processed = ", ".join(key + " - " + str(value) for key, value in lines_wrote.items())
-        print("CSV_PUSH Processed: " + processed)
-        # print("CSV_PUSH going to next lap.")
+    processed = ", ".join(key + " - " + str(value) for key, value in lines_wrote.items())
+    print("write_data_to_csv Processed: " + processed)
 
 
 class Category:
@@ -156,6 +164,7 @@ class Category:
 
     def __str__(self):
         return f"({self.Id}) {self.nameGroup}"
+
 
 if __name__ == '__main__':
     categories = [
@@ -170,21 +179,16 @@ if __name__ == '__main__':
 
     config = Configuration()
     xls_files_directory = config.folders["xls_folder"]
-    # xls_files_directory = "./misc"
-    files = [os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if file.endswith(".xls")]  #[:15]
+
+    files = [os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if
+             file.endswith(".xls")]  # [:15]
     categories = [Category(name, i + 1) for i, name in enumerate(categories)]
     queue = queue.Queue()
-
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor1:
-    #     # Flushing to CSV
-    #     # sql_thread = CSV_PUSH()
-    #     executor1.submit(CSV_PUSH)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
         # Starting threads for file parsing
         results = [executor.submit(parse_dns_xls_local, file, categories, queue) for file in files]
-        # concurrent.futures.wait(results, return_when=concurrent.futures.ALL_COMPLETED)
 
     concurrent.futures.wait(results, return_when=concurrent.futures.ALL_COMPLETED)
-    queue.put("EXIT")
-    CSV_PUSH()
+    # queue.put("EXIT")
+    write_data_to_csv()
