@@ -1,6 +1,7 @@
 from config.config import Configuration
 import os
 import csv
+import time
 import concurrent.futures
 import queue
 from datetime import date
@@ -74,10 +75,10 @@ def write_data_to_csv():
     parsing_date = date.today()
     date_str = parsing_date.strftime("%d-%m-%Y")
 
-    models_file = f"./output/models {date_str}-test.csv"
-    shops_file = f"./output/shops {date_str}-test.csv"
-    availability_file = f"./output/availability {date_str}-test.csv"
-    data_file = f"./output/data {date_str}-test.csv"
+    models_file = f"./output/models {date_str}.csv"
+    shops_file = f"./output/shops {date_str}.csv"
+    availability_file = f"./output/availability {date_str}.csv"
+    data_file = f"./output/data {date_str}.csv"
 
     ### DEVICES
     lines = [[str(article), details["Descr"], details["Category"]] for article, details in models.items()]
@@ -167,11 +168,13 @@ class Category:
 
 
 if __name__ == '__main__':
+    t1 = time.perf_counter()
     categories = [
         "Варочные панели газовые", "Варочные панели электрические", "Встраиваемые посудомоечные машины",
         "Духовые шкафы электрические", "Посудомоечные машины", "Стиральные машины", "Холодильники", "Вытяжки",
         "Блендеры погружные", "Блендеры стационарные", "Грили и раклетницы",
-        "Измельчители", "Кофеварки капельные", "Кофемашины автоматические", "Кофемашины капсульные", "Кофемолки",
+        "Измельчители", "Кофеварки капельные",
+        "Кофемашины автоматические", "Кофемашины капсульные", "Кофемолки",
         "Кухонные комбайны", "Микроволновые печи", "Миксеры", "Мультиварки", "Мясорубки", "Соковыжималки", "Чайники",
         "Электрочайники",
         "Гладильные доски", "Гладильные системы", "Мешки-пылесборники", "Парогенераторы", "Пылесосы", "Утюги"
@@ -192,3 +195,6 @@ if __name__ == '__main__':
     concurrent.futures.wait(results, return_when=concurrent.futures.ALL_COMPLETED)
     # queue.put("EXIT")
     write_data_to_csv()
+
+    t2 = time.perf_counter()
+    print(f'Finished in {t2 - t1} seconds')

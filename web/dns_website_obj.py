@@ -1,39 +1,53 @@
 import requests
-import re
+import pandas as pd
+import hashlib
 
 
 class DnsWebsite:
 
     def __init__(self):
         self.url = "http://dns-shop.ru"
-
-        self.base_cities_url = "https://www.dns-shop.ru/ajax/region-nav-window/"
-        self.base_city_guid_url = "https://www.dns-shop.ru/ajax/change-city/?city_guid="
         self.base_zip_url = "https://www.dns-shop.ru/files/price/"
         self.base_device_search_url = "https://www.dns-shop.ru/search/?q="
+        self.cities_json_url = "http://dns-shop.ru/files/pwa/city-info.json"
+        self.shops_json_url = "http://dns-shop.ru/files/error-page/shops.json"
 
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
             "referer": self.url
         }
-        self.cities = {}
+        self.cities = pd.DataFrame()
+        self.shops = pd.DataFrame()
+        self.parse_cities()
+        self.parse_shops()
 
-    def get_cities_and_hashes(self):
-        """ Возвращает список всех городов и их hash с сайта ДНС
-        Возвращает dict("Город":hash) """
-        response = requests.get(self.base_cities_url, headers=self.headers)
-        pattern = r'<a[\s\S]+?data-city-id="+([\s\S]+?)\"+[\s\S]+?<span>([\s\S]+?)<\/span>[\s\S]+?<\/a>'
-        results = re.findall(pattern, response.json()["html"])
-        self.cities = {cityName: hashStr for (hashStr, cityName) in results}
-        return self.cities
+    def parse_cities(self):
+        cities_json = requests.get(self.cities_json_url, headers=self.headers)
+        self.cities = pd.DataFrame(cities_json.json()["cities"]).T
 
-    def get_city_info(self, city_hash):
-        """ Возвращает cookie с названием города с сайта DNS (cookie city = moscow игнорируется) """
-        response = requests.get(self.base_city_guid_url + city_hash, headers=self.headers)
-        for cookie in response.cookies:
-            if (cookie.name == "city_path") & (cookie.value != "moscow"):
-                return cookie.value
-        return None
+    def parse_shops(self):
+        shops_json = requests.get(self.shops_json_url, headers=self.headers)
+        shops_frame = pd.DataFrame()
+        for city_hash, city_shops_types in shops_json.json().items():
+            for shop_type in city_shops_types:
+                cur_city_frame = pd.DataFrame(city_shops_types[shop_type])
+                cur_city_frame["shop_type"] = shop_type
+                cur_city_frame["city_hash"] = city_hash
+
+                shops_frame = pd.concat([shops_frame, cur_city_frame])
+        shops_frame["addr_md5"] = shops_frame.address.apply(self.make_md5)
+        self.shops = shops_frame
+
+    def price_zip_urls(self):
+        return list(self.url + self.cities["priceUrl"].str.replace("xls", "zip"))
+
+    def price_zip_save_paths(self, base_folder=".\\"):
+        return list(base_folder + self.cities["priceUrl"].str.replace("/files/price/", "").str.replace("xls", "zip"))
+
+    def download_list(self, base_folder=".\\"):
+        print(self.price_zip_urls())
+        print(self.price_zip_save_paths(base_folder))
+        return list(zip(self.price_zip_urls(), self.price_zip_save_paths(base_folder)))
 
     def download_dns_zip(self, params):
         '''Скачивает zip-архив с сайта, сохраняет в указанную папку.
@@ -44,3 +58,11 @@ class DnsWebsite:
         with open(save_path, "wb") as f:
             f.write(r.content)
         print(f"Downloaded  {url} to: {save_path}")
+
+    def make_md5(self, txt):
+        return hashlib.md5(str(txt).encode('utf-8')).hexdigest()
+
+
+if __name__ == "__main__":
+    site = DnsWebsite()
+    print(site.download_list("C:\\Users\\Gorelov\\Desktop\\DNS Parser\\pyZip\\"))

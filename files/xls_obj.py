@@ -118,27 +118,34 @@ class Dns_parse_file(Parse_file):
         # Парсинг наличия
         data_retrieved = {}
         for row, category in sheet_rows:
-            article = ""
-            # Спускаемся от первой ячейки ссылки вниз пока не встретим "Код" или не дойдем до конца листа
-            while article != "Код" or row < sheet.nrows - 1:
-                article, article_name, *availability, price, prozaPass = sheet.row_values(row)
-                if article == "Код":
-                    break
+            # В части файлов присутвуют битые ссылки - вроде категория перечислена, а по факту ведет в другую группу.
+            # Если в заголовке группы нет исходной группы - игнорируем
+            if category in sheet.row_values(row-1,1)[0]:
+            #     ignored = "\t".join(["Ignored", self.city_name, category, sheet.row_values(row-1,1)[0]])
+            #     print(ignored)
+            #     next
+            # else:
+                article = ""
+                # Спускаемся от первой ячейки ссылки вниз пока не встретим "Код" или не дойдем до конца листа
+                while article != "Код" or row < sheet.nrows - 1:
+                    article, article_name, *availability, price, prozaPass = sheet.row_values(row)
+                    if article == "Код":
+                        break
 
-                available_in = list(filter(bool, availability))
-                data_retrieved[int(article)] = ({
-                    "Descr": article_name,
-                    "Price": int(price),
-                    "ProzaPass": int(prozaPass),
-                    "AvailableIn": available_in,
-                    "AvailableCount": len(available_in),
-                    "Category": category
-                })
+                    available_in = list(filter(bool, availability))
+                    data_retrieved[int(article)] = ({
+                        "Descr": article_name,
+                        "Price": int(price),
+                        "ProzaPass": int(prozaPass),
+                        "AvailableIn": available_in,
+                        "AvailableCount": len(available_in),
+                        "Category": category
+                    })
 
-                if row < sheet.nrows - 1:
-                    row += 1
-                else:
-                    break
+                    if row < sheet.nrows - 1:
+                        row += 1
+                    else:
+                        break
 
         return data_retrieved
 
