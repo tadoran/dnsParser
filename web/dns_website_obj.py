@@ -36,7 +36,7 @@ class DnsWebsite:
 
                 shops_frame = pd.concat([shops_frame, cur_city_frame])
         shops_frame["addr_md5"] = shops_frame.address.apply(self.make_md5)
-        self.shops = shops_frame
+        self.shops = shops_frame.reset_index(drop=True)
 
     def price_zip_urls(self):
         return list(self.url + self.cities["priceUrl"].str.replace("xls", "zip"))
