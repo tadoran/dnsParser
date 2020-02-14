@@ -55,6 +55,7 @@ def parse_dns_xls_df(*args):
                     )
     )
 
+
     str_to_print = f"OK - {parsed_file.city_name}\n"
     print(str_to_print, flush=True, end="")
     queue.put([devices_df, availability_df, data_df])
@@ -93,8 +94,9 @@ def write_data_to_csv():
 
 
     # TODO: make date different
-    parsing_date = date.today()
-    date_str = parsing_date.strftime("%d-%m-%Y")
+    # parsing_date = date.today()
+    parsing_date = date(2020, 1, 10)
+    date_str = parsing_date.strftime("%d.%m.%Y")
 
     # Concatenate all present results together
     counter = 0
@@ -136,21 +138,33 @@ def write_data_to_csv():
     shops_file = f"./output/shops {date_str} df.csv"
 
 
-    availability_df_full["date"] = date_str
-    availability_df_full.reset_index().drop_duplicates().to_csv(availability_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",")
-
-
+    print("Writing Data")
     data_df_full["date"] = date_str
-    data_df_full.reset_index().drop_duplicates().to_csv(data_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",")
+    data_df_full.reset_index(inplace=True)
+    data_df_full.columns = ["Город", "Артикул", "Кол-во", "Магазины", "Цена", "ProzaPass", "Дата"]
+    data_df_full.set_index(["Город", "Артикул"])
+    data_df_full.loc[~data_df_full.index.duplicated(keep='first')].to_csv(data_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",", index=False)
 
 
+    print("Writing Shops")
     shops_df["date"] = date_str
-    shops_df.reset_index().drop_duplicates().to_csv(shops_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",")
+    shops_df_final = shops_df.set_index("addr_md5").astype(str)
+    shops_df_final.drop_duplicates().to_csv(shops_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",")
 
-
-
+    print("Writing Models")
     devices_df_full["date"] = date_str
-    devices_df_full.reset_index().drop_duplicates().to_csv(models_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",")
+    devices_df_full = devices_df_full.rename_axis('Артикул').reset_index().drop_duplicates("Артикул").set_index("Артикул")
+    devices_df_full.columns = ["Наименование", "Категория", "Дата"]
+    devices_df_full.loc[~devices_df_full.index.duplicated(keep='first')].to_csv(models_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",")
+
+
+    print("Writing Availability")
+    availability_df_full["date"] = date_str
+    availability_df_full.reset_index(inplace = True)
+    availability_df_full.columns = ["Артикул", "Магазин", "Описание", "Цена", "ProzaPass", "Колво", "Категория", "Дата"]
+    availability_df_full.set_index(["Артикул", "Магазин"])
+    availability_df_full.loc[~availability_df_full.index.duplicated(keep='first')].to_csv(availability_file, sep=";", quotechar='"', quoting=csv.QUOTE_ALL, decimal=",", index=False)
+
     # print(f"write_data_to_csv collected {counter} file results. Processing.")
     # pd.DataFrame.to_csv()
 
@@ -264,7 +278,7 @@ if __name__ == '__main__':
     shop_ids_df = shops_df[["index", "addr_md5"]].set_index("addr_md5")
 
     files = [os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if
-             file.endswith(".xls")][:15]
+             file.endswith(".xls")]#[:15]
     categories = [Category(name, i + 1) for i, name in enumerate(categories)]
     queue = queue.Queue()
 
