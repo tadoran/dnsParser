@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import hashlib
+import pickle
 
 
 class DnsWebsite:
@@ -16,27 +17,51 @@ class DnsWebsite:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
             "referer": self.url
         }
-        self.cities = pd.DataFrame()
-        self.shops = pd.DataFrame()
-        self.parse_cities()
-        self.parse_shops()
+        self._cities = None
+        self._shops = None
+        # self.shops = pd.DataFrame()
+        # self.parse_cities()
+        # self.parse_shops()
 
-    def parse_cities(self):
-        cities_json = requests.get(self.cities_json_url, headers=self.headers)
-        self.cities = pd.DataFrame(cities_json.json()["cities"]).T
+    @property
+    def cities(self):
+        if self._cities is None:
+            cities_json = requests.get(self.cities_json_url, headers=self.headers)
+            self._cities = pd.DataFrame(cities_json.json()["cities"]).T
+        return self._cities
 
-    def parse_shops(self):
-        shops_json = requests.get(self.shops_json_url, headers=self.headers)
-        shops_frame = pd.DataFrame()
-        for city_hash, city_shops_types in shops_json.json().items():
-            for shop_type in city_shops_types:
-                cur_city_frame = pd.DataFrame(city_shops_types[shop_type])
-                cur_city_frame["shop_type"] = shop_type
-                cur_city_frame["city_hash"] = city_hash
+    # def parse_cities(self):
+    #     cities_json = requests.get(self.cities_json_url, headers=self.headers)
+    #     self.cities = pd.DataFrame(cities_json.json()["cities"]).T
 
-                shops_frame = pd.concat([shops_frame, cur_city_frame])
-        shops_frame["addr_md5"] = shops_frame.address.apply(self.make_md5)
-        self.shops = shops_frame.reset_index(drop=True)
+    @property
+    def shops(self):
+        if self._shops is None:
+            shops_json = requests.get(self.shops_json_url, headers=self.headers)
+            shops_frame = pd.DataFrame()
+            for city_hash, city_shops_types in shops_json.json().items():
+                for shop_type in city_shops_types:
+                    cur_city_frame = pd.DataFrame(city_shops_types[shop_type])
+                    cur_city_frame["shop_type"] = shop_type
+                    cur_city_frame["city_hash"] = city_hash
+
+                    shops_frame = pd.concat([shops_frame, cur_city_frame])
+            shops_frame["addr_md5"] = shops_frame.address.apply(self.make_md5)
+            self._shops = shops_frame.reset_index(drop=True)
+        return self._shops
+
+    # def parse_shops(self):
+    #     shops_json = requests.get(self.shops_json_url, headers=self.headers)
+    #     shops_frame = pd.DataFrame()
+    #     for city_hash, city_shops_types in shops_json.json().items():
+    #         for shop_type in city_shops_types:
+    #             cur_city_frame = pd.DataFrame(city_shops_types[shop_type])
+    #             cur_city_frame["shop_type"] = shop_type
+    #             cur_city_frame["city_hash"] = city_hash
+    #
+    #             shops_frame = pd.concat([shops_frame, cur_city_frame])
+    #     shops_frame["addr_md5"] = shops_frame.address.apply(self.make_md5)
+    #     self.shops = shops_frame.reset_index(drop=True)
 
     def price_zip_urls(self):
         return list(self.url + self.cities["priceUrl"].str.replace("xls", "zip"))
@@ -66,3 +91,6 @@ class DnsWebsite:
 if __name__ == "__main__":
     site = DnsWebsite()
     print(site.download_list("C:\\Users\\Gorelov\\Desktop\\DNS Parser\\pyZip\\"))
+    print(len(site.shops))
+    with open('site.pickle', 'wb') as f:
+        pickle.dump(site, f)
