@@ -25,8 +25,8 @@ if __name__ == "__main__":
     website = DnsWebsite()
     config = Configuration()
 
-    zip_files_directory = config.folders["zip_folder"] + "2\\"
-    xls_files_directory = config.folders["xls_folder"] + "2\\"
+    zip_files_directory = config.folders["zip_folder"] + "\\"
+    xls_files_directory = config.folders["xls_folder"] + "\\"
 
     # Очистка папок
     clear_folder(zip_files_directory)

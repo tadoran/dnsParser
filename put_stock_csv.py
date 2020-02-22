@@ -4,9 +4,12 @@ import csv
 import time
 import concurrent.futures
 import queue
+import pickle
+
 from datetime import date
 import pandas as pd
 
+from web.dns_website_obj import DnsWebsite
 from files.xls_obj import Dns_parse_file
 
 
@@ -73,7 +76,7 @@ def write_data_to_csv():
 
     # TODO: make date different
     parsing_date = date.today()
-    date_str = parsing_date.strftime("%d-%m-%Y")
+    date_str = parsing_date.strftime("%d.%m.%Y")
 
     models_file = f"./output/models {date_str}.csv"
     shops_file = f"./output/shops {date_str}.csv"
@@ -182,6 +185,15 @@ if __name__ == '__main__':
 
     config = Configuration()
     xls_files_directory = config.folders["xls_folder"]
+
+
+    # dns = DnsWebsite()
+    with open('.//web//site.pickle', 'rb') as f:
+        dns = pickle.load(f)
+
+    shops_df = dns.shops.reset_index(drop=True).reset_index()
+    shop_ids_df = shops_df[["index", "addr_md5"]].set_index("addr_md5")
+
 
     files = [os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if
              file.endswith(".xls")]  # [:15]
