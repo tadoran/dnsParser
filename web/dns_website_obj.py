@@ -3,7 +3,6 @@ import pandas as pd
 import hashlib
 import pickle
 
-
 class DnsWebsite:
 
     def __init__(self):
@@ -19,9 +18,6 @@ class DnsWebsite:
         }
         self._cities = None
         self._shops = None
-        # self.shops = pd.DataFrame()
-        # self.parse_cities()
-        # self.parse_shops()
 
     @property
     def cities(self):
@@ -29,10 +25,6 @@ class DnsWebsite:
             cities_json = requests.get(self.cities_json_url, headers=self.headers)
             self._cities = pd.DataFrame(cities_json.json()["cities"]).T
         return self._cities
-
-    # def parse_cities(self):
-    #     cities_json = requests.get(self.cities_json_url, headers=self.headers)
-    #     self.cities = pd.DataFrame(cities_json.json()["cities"]).T
 
     @property
     def shops(self):
@@ -49,19 +41,6 @@ class DnsWebsite:
             shops_frame["addr_md5"] = shops_frame.address.apply(self.make_md5)
             self._shops = shops_frame.reset_index(drop=True)
         return self._shops
-
-    # def parse_shops(self):
-    #     shops_json = requests.get(self.shops_json_url, headers=self.headers)
-    #     shops_frame = pd.DataFrame()
-    #     for city_hash, city_shops_types in shops_json.json().items():
-    #         for shop_type in city_shops_types:
-    #             cur_city_frame = pd.DataFrame(city_shops_types[shop_type])
-    #             cur_city_frame["shop_type"] = shop_type
-    #             cur_city_frame["city_hash"] = city_hash
-    #
-    #             shops_frame = pd.concat([shops_frame, cur_city_frame])
-    #     shops_frame["addr_md5"] = shops_frame.address.apply(self.make_md5)
-    #     self.shops = shops_frame.reset_index(drop=True)
 
     def price_zip_urls(self):
         return list(self.url + self.cities["priceUrl"].str.replace("xls", "zip"))
@@ -87,10 +66,17 @@ class DnsWebsite:
     def make_md5(self, txt):
         return hashlib.md5(str(txt).encode('utf-8')).hexdigest()
 
+    def save_pickle(self):
+        with open('site.pickle', 'wb') as f:
+            pickle.dump(self.__dict__, f)
 
+    def load_pickle(self):
+        with open('site.pickle', 'rb') as f:
+            tmp_dict = pickle.load(f)
+            self.__dict__.clear()
+            self.__dict__.update(tmp_dict)
 if __name__ == "__main__":
     site = DnsWebsite()
     print(site.download_list("C:\\Users\\Gorelov\\Desktop\\DNS Parser\\pyZip\\"))
     print(len(site.shops))
-    with open('site.pickle', 'wb') as f:
-        pickle.dump(site, f)
+    site.save_pickle()
