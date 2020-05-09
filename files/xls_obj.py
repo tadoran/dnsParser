@@ -4,21 +4,25 @@ import string
 import hashlib
 import os
 
+
 class Parse_file:
-    def __init__(self, filename):
+    def __init__(self, filename=None, file_contents=None):
         self.filename = filename
+        self.filename_short = ""
+        self.file_contents = file_contents
         self.isParsed = False
         self._shops = {}
         self._articles = {}
         self._availability = {}
-    
+        self.file = None
+
     def load_file(self):
         raise NotImplementedError
-    
+
     @property
     def shops(self):
         return self._shops
-    
+
     @shops.setter
     def shops(self, value):
         self._shops = value
@@ -26,7 +30,7 @@ class Parse_file:
     @property
     def devices(self):
         return self._articles
-    
+
     @devices.setter
     def devices(self, value):
         self._articles = value
@@ -36,7 +40,7 @@ class Parse_file:
         return self._availability
 
     @availability.setter
-    def availability(self,value):
+    def availability(self, value):
         self._availability = value
 
     def parse(self):
@@ -44,8 +48,8 @@ class Parse_file:
 
 
 class Dns_parse_file(Parse_file):
-    def __init__(self,filename, categories=[]):
-        super().__init__(filename)
+    def __init__(self, filename=None, file_contents=None, categories=[]):
+        super().__init__(filename, file_contents)
         self.city_name = "-".join(os.path.basename(self.filename).split(".")[0].split("-")[1:])
         self.categories = categories
         self.load_file()
@@ -54,17 +58,28 @@ class Dns_parse_file(Parse_file):
         # raise CompDocError("%s corruption: seen[%d] == %d" % (qname, s, self.seen[s]))
         # http://www.programmersought.com/article/676234398/
         # https://stackoverflow.com/questions/12705527/reading-excel-files-with-xlrd
-        
-        # print(f"Trying to open {self.filename}")
-        self.file = xlrd.open_workbook(filename=self.filename, on_demand=True)
 
+        # print(f"Trying to open {self.filename}")
+        if self.file_contents:
+            self.file = xlrd.open_workbook(file_contents=self.filename, on_demand=True)
+            self.filename_short = "STREAM"
+        elif self.filename:
+            self.file = xlrd.open_workbook(filename=self.filename, on_demand=True)
+            self.filename_short = self.filename.split('\\')[-1]
+        else:
+            raise FileNotFoundError("File was not provided.")
 
     @property
     def availability_by_shops(self):
         by_shops = {}
         for key, device in self._availability.items():
-            for shop in device.pop("AvailableIn", None):
-                by_shops[(key, shop)] = device
+            availableIn = device.pop("AvailableIn", None)
+            if availableIn:
+                for shop in availableIn:
+                    if shop and key:
+                        by_shops[(key, shop)] = device
+            else:
+                print(f"{self.filename_short}: Device {key} ({device['Descr']} is not available in any shop!)")
         return by_shops
 
     def __enter__(self):
@@ -75,14 +90,16 @@ class Dns_parse_file(Parse_file):
         self.file.release_resources()
 
     def parse(self):
-        
+
         # Ищем ссылки на диапазоны в листе содержания
         title_sh = self.file.sheet_by_index(0)
 
         # Записываем все ссылки. Если один текст встречается несколько раз - оставляем последнюю запись.
         sh_links = [[title_sh.cell(link.frowx, link.fcolx).value.strip(), link.textmark] for link in
                     title_sh.hyperlink_list]
-        sh_links_filtered = {text: [link, self.parse_xl_rangeRef(link)] for text, link in sh_links if text in self.categories}
+        # Фильтруем записи с интересными нам ссылками
+        sh_links_filtered = {text: [link, self.parse_xl_rangeRef(link)] for text, link in sh_links if
+                             text in self.categories}
 
         # Конвертируем ссылки Excel на [Sheet, Row, Column], записываем [[SheetName, Row]] (колонка всегда 1)
         sheet_links_to_parse = \
@@ -105,7 +122,7 @@ class Dns_parse_file(Parse_file):
             try:
                 data_retrieved.update(self.parse_availability(sheet, sheet_rows))
             except IndexError as e:
-                # print(self.filename, e)
+                print(f"{self.filename_short} <{sheet_name}>: {e}")
                 pass
             self.file.unload_sheet(sheet_name)  # Выгружаем лист из памяти для экономии ресурсов
 
@@ -117,21 +134,35 @@ class Dns_parse_file(Parse_file):
     def parse_availability(self, sheet, sheet_rows):
         # Парсинг наличия
         data_retrieved = {}
+        all_sheets_categories = {}
+        total_rows = sheet.nrows
         for row, category in sheet_rows:
+            # Если ссылка указывает на диапазон вне ws.UsedRange - пропускаем
+            if row > total_rows:
+                continue
+
             # В части файлов присутвуют битые ссылки - вроде категория перечислена, а по факту ведет в другую группу.
-            # Если в заголовке группы нет исходной группы - игнорируем
-            if category in sheet.row_values(row-1,1)[0]:
-            #     ignored = "\t".join(["Ignored", self.city_name, category, sheet.row_values(row-1,1)[0]])
-            #     print(ignored)
-            #     next
-            # else:
+
+            # Old behaviour: Если в заголовке группы нет исходной группы - игнорируем
+            # New behaviour: Выберем все категории на листе. Если группа найдена - переназначим строку, иначе - игнор
+            if not category in sheet.row_values(row - 1, 1)[0]:
+                if not all_sheets_categories:
+                    all_sheets_categories = {sheet.cell(i, 1).value.split(" / ")[-1]: i for i, val in
+                                                                          enumerate(sheet.col(0)) if val.value == "Код"}
+                if category in all_sheets_categories:
+                    row = all_sheets_categories[category]
+                    print(f"{self.filename_short}: Rediscovered category {category} in row {i}")
+                else:
+                    # print(f"{self.filename_short}:No {category} found, tried to locate in all categories on list first")
+                    continue
+
+            if category in sheet.row_values(row - 1, 1)[0]:
                 article = ""
                 # Спускаемся от первой ячейки ссылки вниз пока не встретим "Код" или не дойдем до конца листа
-                while article != "Код" or row < sheet.nrows - 1:
+                while article != "Код" and row < sheet.nrows - 1:
                     article, article_name, *availability, price, prozaPass = sheet.row_values(row)
                     if article == "Код":
                         break
-
                     available_in = list(filter(bool, availability))
                     data_retrieved[int(article)] = ({
                         "Descr": article_name,
@@ -146,7 +177,8 @@ class Dns_parse_file(Parse_file):
                         row += 1
                     else:
                         break
-
+            else:
+                print(f"{self.filename_short}: No category {category} in {sheet.row_values(row - 1, 1)[0]}")
         return data_retrieved
 
     def parse_shops(self, sheet):
@@ -161,7 +193,7 @@ class Dns_parse_file(Parse_file):
             try:
                 entry = str(sheet.row_values(row)[0])
             except IndexError as e:
-                # print(self.filename, e)
+                print(self.filename_short, e)
                 pass
 
             if entry == "Код":
@@ -169,11 +201,11 @@ class Dns_parse_file(Parse_file):
             parsed_string = self.parse_dns_shop_entry(entry)
             city_shops[parsed_string[5]] = ({
                 # Код, Название, Телефон, Время работы, Адрес
-                "Code":     parsed_string[0],
-                "Name":     parsed_string[1],
-                "Phone":    parsed_string[2].strip(),
+                "Code": parsed_string[0],
+                "Name": parsed_string[1],
+                "Phone": parsed_string[2].strip(),
                 "WorkTime": parsed_string[3],
-                "Address":  parsed_string[4],
+                "Address": parsed_string[4],
                 "City": self.city_name
             })
         self._shops = city_shops
@@ -185,7 +217,7 @@ class Dns_parse_file(Parse_file):
         """
         ascii_uppercase = " " + string.ascii_uppercase
         pattern = r"'([\s\S]+?)'!(\w+?)(\d+)"
-        matched_list = [0,0,0]
+        matched_list = [0, 0, 0]
         r = re.findall(pattern, rangeRef)
         matched_list[0] = r[0][0]
         matched_list[1] = int(r[0][2])

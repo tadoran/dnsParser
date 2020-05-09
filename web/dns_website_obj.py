@@ -43,10 +43,10 @@ class DnsWebsite:
         return self._shops
 
     def price_zip_urls(self):
-        return list(self.url + self.cities["priceUrl"].str.replace("xls", "zip"))
+        return {self.url + x.replace("xls", "zip") for x in self.cities["priceUrl"]}
 
     def price_zip_save_paths(self, base_folder=".\\"):
-        return list(base_folder + self.cities["priceUrl"].str.replace("/files/price/", "").str.replace("xls", "zip"))
+        return {base_folder + x.replace("/files/price/", "").replace("xls", "zip") for x in self.cities["priceUrl"]}
 
     def download_list(self, base_folder=".\\"):
         print(self.price_zip_urls())
@@ -58,7 +58,7 @@ class DnsWebsite:
         params = list[ссылка на сайте, адрес сохранения]
         '''
         url, save_path = params
-        r = requests.get(url, headers=self.headers)
+        r = requests.get(url, headers=self.headers, timeout=25)
         with open(save_path, "wb") as f:
             f.write(r.content)
         print(f"Downloaded  {url} to: {save_path}")
@@ -75,6 +75,8 @@ class DnsWebsite:
             tmp_dict = pickle.load(f)
             self.__dict__.clear()
             self.__dict__.update(tmp_dict)
+
+
 if __name__ == "__main__":
     site = DnsWebsite()
     print(site.download_list("C:\\Users\\Gorelov\\Desktop\\DNS Parser\\pyZip\\"))

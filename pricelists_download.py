@@ -19,7 +19,7 @@ def unzip_dns_xls(params):
             zip_file.extract(names, save_path)
 
 
-if __name__ == "__main__":
+def main_routine():
     t1 = time.perf_counter()
 
     website = DnsWebsite()
@@ -33,20 +33,25 @@ if __name__ == "__main__":
     clear_folder(xls_files_directory)
 
     # Формируем список файлов на загрузку
-    download_list = website.download_list(zip_files_directory)
+    download_list = set(website.download_list(zip_files_directory))
+    website.save_pickle()
 
     # Скачивание файлов в x потоков
     with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
         executor.map(website.download_dns_zip, download_list)
 
     # Все скаченные zip-ахривы
-    files = [zip_files_directory + "\\" + file for file in os.listdir(zip_files_directory) if file.endswith(".zip")]
+    files = (zip_files_directory + "\\" + file for file in os.listdir(zip_files_directory) if file.endswith(".zip"))
     # [(Файл, папка для распаковки)]
-    downloaded_zips = [(file, xls_files_directory) for file in files]
+    downloaded_zips = ((file, xls_files_directory) for file in files)
 
     # Раззиповка, в x потоков
-    with concurrent.futures.ProcessPoolExecutor(max_workers=15) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=30) as executor:
         executor.map(unzip_dns_xls, downloaded_zips)
 
     t2 = time.perf_counter()
     print(f'Finished in {t2 - t1} seconds')
+
+
+if __name__ == "__main__":
+    main_routine()
