@@ -101,9 +101,11 @@ if __name__ == "__main__":
 
     dns.save_pickle()
 
-    files = [os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if
-             file.endswith(".xls")] #[:15]
-    # ]
+    files_all = (os.path.join(xls_files_directory, file) for file in os.listdir(xls_files_directory) if file.endswith(".xls"))
+
+    sample_files = False
+    files = [file for i, file in enumerate(files_all) if i < 15 or not sample_files]
+
     categories = [Category(name, i + 1) for i, name in enumerate(categories)]
 
     models = {}
